@@ -24,33 +24,25 @@ fn get_next_token(code: &str) -> Option<Token> {
     let first = chars.next()?;
     assert!(!first.is_whitespace());
 
+    let next = chars.peek();
     #[cfg_attr(any(), rustfmt::skip)]
-    match first {
-        '=' => return Some(Token::new("=", TokenType::Operator(Operator::Assignment))),
-        '+' => return Some(Token::new("+", TokenType::Operator(Operator::Addition))),
-        '-' => {
-            let next = chars.peek();
-            if next == Some(&'>') {
-                return Some(Token::new("->", TokenType::Symbol(Symbol::Arrow)));
-            }
-            return Some(Token::new("-", TokenType::Operator(Operator::Subtraction)))
-        },
-        '*' => return Some(Token::new("*", TokenType::Operator(Operator::Multiplication))),
-        '/' => {
-            let next = chars.peek();
-            if next == Some(&'/') {
-                return parse_single_line_comment_token(code);
-            }
-            return Some(Token::new("/", TokenType::Operator(Operator::Division)));
-        }
-        '}' => return Some(Token::new("}", TokenType::Symbol(Symbol::CloseCurly))),
-        ')' => return Some(Token::new(")", TokenType::Symbol(Symbol::CloseParen))),
-        ':' => return Some(Token::new(":", TokenType::Symbol(Symbol::Colon))),
-        ',' => return Some(Token::new(",", TokenType::Symbol(Symbol::Comma))),
-        '{' => return Some(Token::new("{", TokenType::Symbol(Symbol::OpenCurly))),
-        '(' => return Some(Token::new("(", TokenType::Symbol(Symbol::OpenParen))),
-        ';' => return Some(Token::new(";", TokenType::Symbol(Symbol::Semicolon))),
-        '"' => return parse_string_literal_token(code),
+    match (first, next) {
+        ('=', _) => return Some(Token::new("=", TokenType::Operator(Operator::Assignment))),
+        ('+', _) => return Some(Token::new("+", TokenType::Operator(Operator::Addition))),
+        ('-', Some('>')) => return Some(Token::new("->", TokenType::Symbol(Symbol::Arrow))),
+        ('-', _) => return Some(Token::new("-", TokenType::Operator(Operator::Subtraction))),
+        ('*', _) => return Some(Token::new("*", TokenType::Operator(Operator::Multiplication))),
+        ('/', Some('/')) => return parse_single_line_comment_token(code),
+        ('/', Some('*')) => return parse_multi_line_comment_token(code),
+        ('/', _) => return Some(Token::new("/", TokenType::Operator(Operator::Division))),
+        ('}', _) => return Some(Token::new("}", TokenType::Symbol(Symbol::CloseCurly))),
+        (')', _) => return Some(Token::new(")", TokenType::Symbol(Symbol::CloseParen))),
+        (':', _) => return Some(Token::new(":", TokenType::Symbol(Symbol::Colon))),
+        (',', _) => return Some(Token::new(",", TokenType::Symbol(Symbol::Comma))),
+        ('{', _) => return Some(Token::new("{", TokenType::Symbol(Symbol::OpenCurly))),
+        ('(', _) => return Some(Token::new("(", TokenType::Symbol(Symbol::OpenParen))),
+        (';', _) => return Some(Token::new(";", TokenType::Symbol(Symbol::Semicolon))),
+        ('"', _) => return parse_string_literal_token(code),
         _ => {}
     }
 
@@ -81,7 +73,29 @@ fn parse_single_line_comment_token(code: &str) -> Option<Token> {
     }
 
     let slice = &code[..=end_index];
-    Some(Token::new(slice, TokenType::NoOperation))
+    Some(Token::new(slice, TokenType::Comment))
+}
+
+fn parse_multi_line_comment_token(code: &str) -> Option<Token> {
+    let mut chars = code.char_indices().peekable();
+    let (_, first) = chars.next()?;
+    let (mut end_index, second) = chars.next()?;
+
+    if first != '/' || second != '*' {
+        return None;
+    }
+
+    loop {
+        let (_, char) = chars.next()?;
+        let (next_index, next) = chars.peek()?;
+        if char == '*' && *next == '/' {
+            end_index = *next_index;
+            break;
+        }
+    }
+
+    let slice = &code[..=end_index];
+    Some(Token::new(slice, TokenType::Comment))
 }
 
 fn parse_integer_literal_token(code: &str) -> Option<Token> {

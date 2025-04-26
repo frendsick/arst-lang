@@ -1,5 +1,11 @@
 // This is a single-line comment
 
+/*
+    This is a
+    multi-line
+    comment
+*/
+
 fn add(a: int, b: int) -> int {
     return a + b;
 }
