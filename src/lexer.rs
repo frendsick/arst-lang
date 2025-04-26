@@ -1,5 +1,7 @@
 use crate::defs::{DELIMITERS, Keyword, Literal, Operator, Symbol, Token, TokenType};
 
+const NEWLINE: char = 0xA as char;
+
 pub fn parse_tokens(code: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut unparsed_code = code;
@@ -34,7 +36,13 @@ fn get_next_token(code: &str) -> Option<Token> {
             return Some(Token::new("-", TokenType::Operator(Operator::Subtraction)))
         },
         '*' => return Some(Token::new("*", TokenType::Operator(Operator::Multiplication))),
-        '/' => return Some(Token::new("/", TokenType::Operator(Operator::Division))),
+        '/' => {
+            let next = chars.peek();
+            if next == Some(&'/') {
+                return parse_single_line_comment_token(code);
+            }
+            return Some(Token::new("/", TokenType::Operator(Operator::Division)));
+        }
         '}' => return Some(Token::new("}", TokenType::Symbol(Symbol::CloseCurly))),
         ')' => return Some(Token::new(")", TokenType::Symbol(Symbol::CloseParen))),
         ':' => return Some(Token::new(":", TokenType::Symbol(Symbol::Colon))),
@@ -54,6 +62,26 @@ fn get_next_token(code: &str) -> Option<Token> {
         v if let Some(token) = parse_integer_literal_token(v) => Some(token),
         _ => Some(Token::new(value, TokenType::Identifier)),
     }
+}
+
+fn parse_single_line_comment_token(code: &str) -> Option<Token> {
+    let mut chars = code.char_indices();
+    let (_, first) = chars.next()?;
+    let (mut end_index, second) = chars.next()?;
+
+    if first != '/' || second != '/' {
+        return None;
+    }
+
+    for (index, char) in chars {
+        if char == NEWLINE {
+            break;
+        }
+        end_index = index;
+    }
+
+    let slice = &code[..=end_index];
+    Some(Token::new(slice, TokenType::NoOperation))
 }
 
 fn parse_integer_literal_token(code: &str) -> Option<Token> {
@@ -88,10 +116,9 @@ fn parse_string_literal_token(code: &str) -> Option<Token> {
         return None;
     }
 
-    let newline = 0xA as char;
     for (index, char) in chars {
         // String should be on single line
-        if char == newline {
+        if char == NEWLINE {
             return None;
         }
         if char == '"' {

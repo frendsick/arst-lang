@@ -4,11 +4,12 @@ pub const DELIMITERS: [char; 7] = [',', ':', ';', '(', ')', '{', '}'];
 
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
+    Identifier,
+    Keyword(Keyword),
     Literal(Literal),
+    NoOperation,
     Operator(Operator),
     Symbol(Symbol),
-    Keyword(Keyword),
-    Identifier,
 }
 
 #[derive(Debug, PartialEq)]
