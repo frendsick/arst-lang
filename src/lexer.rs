@@ -16,7 +16,7 @@ pub fn parse_tokens(code: &str) -> Vec<Token> {
 
 /// The first character must not be a whitespace
 fn get_next_token(code: &str) -> Option<Token> {
-    let mut chars = code.chars();
+    let mut chars = code.chars().peekable();
 
     // Single character tokens
     let first = chars.next()?;
@@ -26,10 +26,20 @@ fn get_next_token(code: &str) -> Option<Token> {
     match first {
         '=' => return Some(Token::new("=", TokenType::Operator(Operator::Assignment))),
         '+' => return Some(Token::new("+", TokenType::Operator(Operator::Addition))),
-        '-' => return Some(Token::new("-", TokenType::Operator(Operator::Subtraction))),
-        '*' => return Some(Token::new("-", TokenType::Operator(Operator::Multiplication))),
-        '/' => return Some(Token::new("-", TokenType::Operator(Operator::Division))),
+        '-' => {
+            let next = chars.peek();
+            if next == Some(&'>') {
+                return Some(Token::new("->", TokenType::Symbol(Symbol::Arrow)));
+            }
+            return Some(Token::new("-", TokenType::Operator(Operator::Subtraction)))
+        },
+        '*' => return Some(Token::new("*", TokenType::Operator(Operator::Multiplication))),
+        '/' => return Some(Token::new("/", TokenType::Operator(Operator::Division))),
+        '}' => return Some(Token::new("}", TokenType::Symbol(Symbol::CloseCurly))),
         ')' => return Some(Token::new(")", TokenType::Symbol(Symbol::CloseParen))),
+        ':' => return Some(Token::new(":", TokenType::Symbol(Symbol::Colon))),
+        ',' => return Some(Token::new(",", TokenType::Symbol(Symbol::Comma))),
+        '{' => return Some(Token::new("{", TokenType::Symbol(Symbol::OpenCurly))),
         '(' => return Some(Token::new("(", TokenType::Symbol(Symbol::OpenParen))),
         ';' => return Some(Token::new(";", TokenType::Symbol(Symbol::Semicolon))),
         _ => {}

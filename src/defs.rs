@@ -1,6 +1,6 @@
 use std::fmt;
 
-pub const DELIMITERS: [char; 3] = [';', '(', ')'];
+pub const DELIMITERS: [char; 7] = [',', ':', ';', '(', ')', '{', '}'];
 
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
@@ -33,7 +33,12 @@ pub enum Operator {
 
 #[derive(Debug, PartialEq)]
 pub enum Symbol {
+    Arrow,
+    CloseCurly,
     CloseParen,
+    Colon,
+    Comma,
+    OpenCurly,
     OpenParen,
     Semicolon,
 }
