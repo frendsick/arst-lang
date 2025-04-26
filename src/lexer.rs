@@ -79,12 +79,14 @@ fn parse_single_line_comment_token(code: &str) -> Option<Token> {
 fn parse_multi_line_comment_token(code: &str) -> Option<Token> {
     let mut chars = code.char_indices().peekable();
     let (_, first) = chars.next()?;
-    let (mut end_index, second) = chars.next()?;
+    let (_, second) = chars.next()?;
 
     if first != '/' || second != '*' {
         return None;
     }
 
+    #[allow(unused_assignments)]
+    let mut end_index = 0;
     loop {
         let (_, char) = chars.next()?;
         let (next_index, next) = chars.peek()?;
