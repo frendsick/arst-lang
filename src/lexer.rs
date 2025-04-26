@@ -1,4 +1,4 @@
-use crate::defs::{DELIMITERS, Keyword, Operator, Symbol, Token, TokenType};
+use crate::defs::{DELIMITERS, Keyword, Literal, Operator, Symbol, Token, TokenType};
 
 pub fn parse_tokens(code: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
@@ -42,6 +42,7 @@ fn get_next_token(code: &str) -> Option<Token> {
         '{' => return Some(Token::new("{", TokenType::Symbol(Symbol::OpenCurly))),
         '(' => return Some(Token::new("(", TokenType::Symbol(Symbol::OpenParen))),
         ';' => return Some(Token::new(";", TokenType::Symbol(Symbol::Semicolon))),
+        '"' => return parse_string_literal_token(code),
         _ => {}
     }
 
@@ -50,12 +51,12 @@ fn get_next_token(code: &str) -> Option<Token> {
     match value {
         "" => None,
         "let" => Some(Token::new("let", TokenType::Keyword(Keyword::Let))),
-        v if let Some(token) = parse_integer_token(v) => Some(token),
+        v if let Some(token) = parse_integer_literal_token(v) => Some(token),
         _ => Some(Token::new(value, TokenType::Identifier)),
     }
 }
 
-fn parse_integer_token(code: &str) -> Option<Token> {
+fn parse_integer_literal_token(code: &str) -> Option<Token> {
     let mut chars = code.char_indices();
     let (mut end_index, first) = chars.next()?;
 
@@ -73,7 +74,37 @@ fn parse_integer_token(code: &str) -> Option<Token> {
     let slice = &code[..=end_index];
     let integer = slice.parse::<i32>().ok()?;
 
-    Some(Token::new(slice, TokenType::Integer(integer)))
+    Some(Token::new(
+        slice,
+        TokenType::Literal(Literal::Integer(integer)),
+    ))
+}
+
+fn parse_string_literal_token(code: &str) -> Option<Token> {
+    let mut chars = code.char_indices();
+    let (mut end_index, first) = chars.next()?;
+
+    if first != '"' {
+        return None;
+    }
+
+    let newline = 0xA as char;
+    for (index, char) in chars {
+        // String should be on single line
+        if char == newline {
+            return None;
+        }
+        if char == '"' {
+            break;
+        }
+        end_index = index;
+    }
+
+    let slice = &code[1..=end_index];
+    Some(Token::new(
+        &format!("\"{}\"", slice),
+        TokenType::Literal(Literal::String(slice.to_string())),
+    ))
 }
 
 fn parse_until_whitespace_or_delimiter(code: &str) -> &str {
